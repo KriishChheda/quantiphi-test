@@ -1,8 +1,8 @@
 function GoalToggle({ activeGoal, onGoalChange }) {
   const goals = [
-    { key: 'weightloss', label: 'Weight Loss', icon: '🔥', cals: '1500 kcal' },
-    { key: 'maintenance', label: 'Maintenance', icon: '⚖️', cals: '2000 kcal' },
-    { key: 'musclegain', label: 'Muscle Gain', icon: '💪', cals: '2800 kcal' },
+    { key: 'weightloss', label: 'Weight Loss', cals: '1500 kcal' },
+    { key: 'maintenance', label: 'Maintenance', cals: '2000 kcal' },
+    { key: 'musclegain', label: 'Muscle Gain', cals: '2800 kcal' },
   ];
 
   return (
@@ -24,7 +24,6 @@ function GoalToggle({ activeGoal, onGoalChange }) {
                     : 'bg-gray-50 border-transparent hover:bg-gray-100 hover:border-gray-200'
                   }`}
               >
-                <span className="block text-lg mb-0.5">{goal.icon}</span>
                 <span className={`block text-xs font-semibold ${isActive ? 'text-green-700' : 'text-gray-600'}`}>
                   {goal.label}
                 </span>

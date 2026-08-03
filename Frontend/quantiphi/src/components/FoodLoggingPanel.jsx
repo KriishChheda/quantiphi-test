@@ -9,8 +9,12 @@ function FoodLoggingPanel({ onLogFood }) {
   });
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Known foods in our backend for simulation
+  const mockFoods = ['Chicken Breast', 'Rice', 'Banana', 'Egg', 'Bread', 'Milk', 'Apple', 'Pasta', 'Salmon'];
 
   const handleImageUpload = () => {
     fileInputRef.current?.click();
@@ -20,9 +24,18 @@ function FoodLoggingPanel({ onLogFood }) {
     const file = e.target.files?.[0];
     if (file) {
       setUploadedFileName(file.name);
+      setIsScanning(true);
+
+      // Simulate a 2-second AI analysis delay
       setTimeout(() => {
-        setFoodName('Detected: ' + file.name.split('.')[0]);
-      }, 500);
+        // Randomly pick a food item and a plausible portion weight
+        const detectedFood = mockFoods[Math.floor(Math.random() * mockFoods.length)];
+        const detectedWeight = Math.floor(Math.random() * 200) + 100; // Between 100g and 300g
+
+        setFoodName(detectedFood);
+        setPortionWeight(detectedWeight.toString());
+        setIsScanning(false);
+      }, 2000);
     }
   };
 
@@ -55,7 +68,7 @@ function FoodLoggingPanel({ onLogFood }) {
   const isFormValid = foodName.trim() && portionWeight && parseFloat(portionWeight) > 0;
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className="w-full max-w-2xl mx-auto">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
@@ -144,17 +157,30 @@ function FoodLoggingPanel({ onLogFood }) {
             <button
               type="button"
               onClick={handleImageUpload}
-              className="w-full py-3 rounded-lg border border-dashed border-gray-300
-                         hover:border-green-400 hover:bg-green-50
-                         transition-all duration-200 ease-in-out group cursor-pointer flex items-center justify-center gap-2"
+              disabled={isScanning}
+              className={`w-full py-3 rounded-lg border ${
+                isScanning ? 'border-green-400 bg-green-50' : 'border-dashed border-gray-300 hover:border-green-400 hover:bg-green-50'
+              } transition-all duration-200 ease-in-out group cursor-pointer flex items-center justify-center gap-2`}
             >
-              <svg className="w-5 h-5 text-gray-400 group-hover:text-green-500 transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-              </svg>
-              <span className="text-sm text-gray-500 group-hover:text-green-600 transition-colors duration-200">
-                {uploadedFileName || 'Upload a food photo'}
-              </span>
+              {isScanning ? (
+                <>
+                  <svg className="w-5 h-5 text-green-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  <span className="text-sm text-green-600 font-medium">AI is analyzing image...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 text-gray-400 group-hover:text-green-500 transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                  </svg>
+                  <span className="text-sm text-gray-500 group-hover:text-green-600 transition-colors duration-200">
+                    {uploadedFileName ? `Re-upload photo` : `Upload a food photo`}
+                  </span>
+                </>
+              )}
             </button>
           </div>
 
