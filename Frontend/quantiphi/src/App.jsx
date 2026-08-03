@@ -3,19 +3,23 @@ import VisualDashboard from './components/VisualDashboard';
 import FoodLoggingPanel from './components/FoodLoggingPanel';
 import BudgetExceededModal from './components/BudgetExceededModal';
 import DailyHistory from './components/DailyHistory';
+import GoalToggle from './components/GoalToggle';
 
 function App() {
   const [foodLog, setFoodLog] = useState([]);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [activeGoal, setActiveGoal] = useState('maintenance');
   const prevCaloriesRef = useRef(0);
 
-  // Daily goals (will come from user settings / backend later)
-  const dailyGoals = {
-    calories: 2000,
-    protein: 150,
-    carbs: 250,
-    fats: 65,
+  // Goal presets — mirrors backend
+  const goalPresets = {
+    weightloss: { calories: 1500, protein: 130, carbs: 150, fats: 45 },
+    maintenance: { calories: 2000, protein: 150, carbs: 250, fats: 65 },
+    musclegain: { calories: 2800, protein: 200, carbs: 350, fats: 80 },
   };
+
+  // Dynamic daily goals based on active goal
+  const dailyGoals = goalPresets[activeGoal];
 
   // Mock nutrition lookup — simulates what the backend will return per 100g
   const nutritionPer100g = {
@@ -69,6 +73,16 @@ function App() {
     setFoodLog((prev) => prev.filter((entry) => entry.id !== id));
   };
 
+  const handleGoalChange = (goal) => {
+    setActiveGoal(goal);
+
+    // Check if switching goals causes budget to be exceeded
+    const newLimits = goalPresets[goal];
+    if (totals.calories > newLimits.calories) {
+      setTimeout(() => setShowBudgetModal(true), 300);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
@@ -90,7 +104,10 @@ function App() {
 
       {/* Main Content */}
       <main className="flex-1 px-4 py-8 space-y-6 max-w-6xl mx-auto w-full">
-        {/* Visual Dashboard — top of viewport */}
+        {/* Goal Toggle — at the top */}
+        <GoalToggle activeGoal={activeGoal} onGoalChange={handleGoalChange} />
+
+        {/* Visual Dashboard — below goal toggle */}
         <VisualDashboard
           caloriesConsumed={totals.calories}
           caloriesBudget={dailyGoals.calories}
