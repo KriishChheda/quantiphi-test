@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 
-function BudgetExceededModal({ isOpen, onClose, caloriesConsumed, caloriesBudget }) {
+function BudgetExceededModal({ isOpen, onClose, exceededLimits = [] }) {
   const [isVisible, setIsVisible] = useState(false);
-  const overBy = caloriesConsumed - caloriesBudget;
 
   useEffect(() => {
     if (isOpen) {
@@ -39,15 +38,21 @@ function BudgetExceededModal({ isOpen, onClose, caloriesConsumed, caloriesBudget
         </div>
 
         {/* Title */}
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Daily Budget Exceeded!</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Limit Exceeded!</h2>
 
         {/* Message */}
-        <p className="text-sm text-gray-500 mb-1">
-          You've consumed <span className="font-semibold text-red-500">{caloriesConsumed} kcal</span>
+        <p className="text-sm text-gray-500 mb-4">
+          You've exceeded your daily allowance for:
         </p>
-        <p className="text-sm text-gray-500 mb-5">
-          That's <span className="font-semibold text-red-500">{overBy} kcal</span> over your {caloriesBudget} kcal daily limit.
-        </p>
+        
+        <div className="space-y-2 mb-6 text-left">
+          {exceededLimits.map((limit, idx) => (
+            <div key={idx} className="bg-red-50 text-red-700 text-sm py-2 px-3 rounded-lg font-medium flex justify-between items-center">
+              <span>{limit.name}</span>
+              <span className="font-bold">+{limit.overBy}{limit.unit}</span>
+            </div>
+          ))}
+        </div>
 
         {/* Close Button */}
         <button

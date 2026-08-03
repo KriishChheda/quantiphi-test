@@ -1,94 +1,123 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import VisualDashboard from './components/VisualDashboard';
 import FoodLoggingPanel from './components/FoodLoggingPanel';
 import BudgetExceededModal from './components/BudgetExceededModal';
 import DailyHistory from './components/DailyHistory';
 import GoalToggle from './components/GoalToggle';
 
+const API_URL = 'http://localhost:5001/api';
+
 function App() {
   const [foodLog, setFoodLog] = useState([]);
-  const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [budget, setBudget] = useState(null);
   const [activeGoal, setActiveGoal] = useState('maintenance');
-  const prevCaloriesRef = useRef(0);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Goal presets — mirrors backend
-  const goalPresets = {
-    weightloss: { calories: 1500, protein: 130, carbs: 150, fats: 45 },
-    maintenance: { calories: 2000, protein: 150, carbs: 250, fats: 65 },
-    musclegain: { calories: 2800, protein: 200, carbs: 350, fats: 80 },
-  };
+  // Fetch initial data
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [goalRes, logRes] = await Promise.all([
+          fetch(`${API_URL}/goal`),
+          fetch(`${API_URL}/food-log`)
+        ]);
+        
+        const goalData = await goalRes.json();
+        const logData = await logRes.json();
+        
+        if (goalData.success) {
+          setActiveGoal(goalData.activeGoal);
+          setBudget(goalData.budget);
+        }
+        
+        if (logData.success) {
+          setFoodLog(logData.data);
+          setBudget(logData.budget); // We use the logData budget as it includes everything
+        }
+      } catch (err) {
+        console.error("Failed to fetch initial data", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchInitialData();
+  }, []);
 
-  // Dynamic daily goals based on active goal
-  const dailyGoals = goalPresets[activeGoal];
-
-  // Mock nutrition lookup — simulates what the backend will return per 100g
-  const nutritionPer100g = {
-    'chicken breast': { calories: 165, protein: 31, carbs: 0, fats: 3.6 },
-    'rice': { calories: 130, protein: 2.7, carbs: 28, fats: 0.3 },
-    'banana': { calories: 89, protein: 1.1, carbs: 23, fats: 0.3 },
-    'egg': { calories: 155, protein: 13, carbs: 1.1, fats: 11 },
-    'bread': { calories: 265, protein: 9, carbs: 49, fats: 3.2 },
-    'milk': { calories: 42, protein: 3.4, carbs: 5, fats: 1 },
-    'apple': { calories: 52, protein: 0.3, carbs: 14, fats: 0.2 },
-    'pasta': { calories: 131, protein: 5, carbs: 25, fats: 1.1 },
-    'salmon': { calories: 208, protein: 20, carbs: 0, fats: 13 },
-    'tofu': { calories: 76, protein: 8, carbs: 1.9, fats: 4.8 },
-    'lentils': { calories: 116, protein: 9, carbs: 20, fats: 0.4 },
-    'paneer': { calories: 265, protein: 18, carbs: 1.2, fats: 20.8 },
-    'spinach': { calories: 23, protein: 2.9, carbs: 3.6, fats: 0.4 },
-    'broccoli': { calories: 34, protein: 2.8, carbs: 6.6, fats: 0.4 },
-    'avocado': { calories: 160, protein: 2, carbs: 8.5, fats: 14.7 },
-    'almonds': { calories: 579, protein: 21, carbs: 22, fats: 50 },
-    'default': { calories: 150, protein: 5, carbs: 20, fats: 5 },
-  };
-
-  // Calculate totals from food log
-  const totals = foodLog.reduce(
-    (acc, entry) => {
-      const key = entry.foodName.toLowerCase();
-      const nutrition = nutritionPer100g[key] || nutritionPer100g['default'];
-      const multiplier = entry.portionWeight / 100;
-
-      acc.calories += Math.round(nutrition.calories * multiplier);
-      acc.protein += Math.round(nutrition.protein * multiplier);
-      acc.carbs += Math.round(nutrition.carbs * multiplier);
-      acc.fats += Math.round(nutrition.fats * multiplier);
-      return acc;
-    },
-    { calories: 0, protein: 0, carbs: 0, fats: 0 }
-  );
-
-  // Track previous calories to detect the crossing moment
-  prevCaloriesRef.current = totals.calories;
-
-  const handleLogFood = (entry) => {
-    // Calculate what the new total will be after adding this entry
-    const key = entry.foodName.toLowerCase();
-    const nutrition = nutritionPer100g[key] || nutritionPer100g['default'];
-    const multiplier = entry.portionWeight / 100;
-    const newCalories = prevCaloriesRef.current + Math.round(nutrition.calories * multiplier);
-
-    // Detect the crossing moment: was under, now over
-    if (prevCaloriesRef.current <= dailyGoals.calories && newCalories > dailyGoals.calories) {
-      setTimeout(() => setShowBudgetModal(true), 500);
-    }
-
-    setFoodLog((prev) => [...prev, entry]);
-  };
-
-  const handleDeleteEntry = (id) => {
-    setFoodLog((prev) => prev.filter((entry) => entry.id !== id));
-  };
-
-  const handleGoalChange = (goal) => {
-    setActiveGoal(goal);
-
-    // Check if switching goals causes budget to be exceeded
-    const newLimits = goalPresets[goal];
-    if (totals.calories > newLimits.calories) {
-      setTimeout(() => setShowBudgetModal(true), 300);
+  const handleLogFood = async (entry) => {
+    try {
+      const res = await fetch(`${API_URL}/food-log`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry),
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setFoodLog((prev) => [...prev, data.data]);
+        
+        // Detect if any new limit was crossed
+        const previousExceededCount = budget?.exceededLimits?.length || 0;
+        const newExceededCount = data.budget.exceededLimits?.length || 0;
+        if (newExceededCount > previousExceededCount) {
+          setTimeout(() => setShowBudgetModal(true), 500);
+        }
+        
+        setBudget(data.budget);
+      }
+    } catch (err) {
+      console.error("Failed to log food", err);
     }
   };
+
+  const handleDeleteEntry = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/food-log/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      
+      if (data.success) {
+        setFoodLog((prev) => prev.filter((entry) => entry.id !== id));
+        setBudget(data.budget);
+      }
+    } catch (err) {
+      console.error("Failed to delete food", err);
+    }
+  };
+
+  const handleGoalChange = async (goal) => {
+    try {
+      const res = await fetch(`${API_URL}/goal`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goal }),
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setActiveGoal(data.activeGoal);
+        
+        // Detect if the new stricter limits push us over budget for new macros
+        const previousExceededCount = budget?.exceededLimits?.length || 0;
+        const newExceededCount = data.budget.exceededLimits?.length || 0;
+        if (newExceededCount > previousExceededCount) {
+          setTimeout(() => setShowBudgetModal(true), 300);
+        }
+        
+        setBudget(data.budget);
+      }
+    } catch (err) {
+      console.error("Failed to change goal", err);
+    }
+  };
+
+  if (isLoading || !budget) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500 font-medium">Loading NutriTrack...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -116,14 +145,14 @@ function App() {
 
         {/* Visual Dashboard — below goal toggle */}
         <VisualDashboard
-          caloriesConsumed={totals.calories}
-          caloriesBudget={dailyGoals.calories}
-          protein={totals.protein}
-          proteinGoal={dailyGoals.protein}
-          carbs={totals.carbs}
-          carbsGoal={dailyGoals.carbs}
-          fats={totals.fats}
-          fatsGoal={dailyGoals.fats}
+          caloriesConsumed={budget.totals.calories}
+          caloriesBudget={budget.limits.calories}
+          protein={budget.totals.protein}
+          proteinGoal={budget.limits.protein}
+          carbs={budget.totals.carbs}
+          carbsGoal={budget.limits.carbs}
+          fats={budget.totals.fats}
+          fatsGoal={budget.limits.fats}
         />
 
         {/* Food Logging Panel — below dashboard */}
@@ -133,15 +162,13 @@ function App() {
         <DailyHistory
           foodLog={foodLog}
           onDeleteEntry={handleDeleteEntry}
-          nutritionPer100g={nutritionPer100g}
         />
 
         {/* Budget Exceeded Warning Modal */}
         <BudgetExceededModal
           isOpen={showBudgetModal}
           onClose={() => setShowBudgetModal(false)}
-          caloriesConsumed={totals.calories}
-          caloriesBudget={dailyGoals.calories}
+          exceededLimits={budget.exceededLimits}
         />
       </main>
 

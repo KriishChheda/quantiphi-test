@@ -1,4 +1,4 @@
-function DailyHistory({ foodLog, onDeleteEntry, nutritionPer100g }) {
+function DailyHistory({ foodLog, onDeleteEntry }) {
   if (foodLog.length === 0) {
     return (
       <div className="w-full max-w-2xl mx-auto">
@@ -29,13 +29,7 @@ function DailyHistory({ foodLog, onDeleteEntry, nutritionPer100g }) {
         {/* Meal List */}
         <ul className="divide-y divide-gray-100">
           {[...foodLog].sort((a, b) => a.mealTime.localeCompare(b.mealTime)).map((entry) => {
-            const key = entry.foodName.toLowerCase();
-            const nutrition = nutritionPer100g[key] || nutritionPer100g['default'];
-            const multiplier = entry.portionWeight / 100;
-            const calories = Math.round(nutrition.calories * multiplier);
-            const protein = Math.round(nutrition.protein * multiplier);
-            const carbs = Math.round(nutrition.carbs * multiplier);
-            const fats = Math.round(nutrition.fats * multiplier);
+            const { calories, protein, carbs, fats } = entry.nutrition;
 
             return (
               <li

@@ -106,9 +106,15 @@ function getBudgetStatus() {
     fats: limits.fats > 0 ? Math.round((totals.fats / limits.fats) * 100) : 0,
   };
 
+  const exceededLimits = [];
+  if (totals.calories > limits.calories) exceededLimits.push({ name: 'Calories', overBy: totals.calories - limits.calories, unit: 'kcal' });
+  if (totals.protein > limits.protein) exceededLimits.push({ name: 'Protein', overBy: totals.protein - limits.protein, unit: 'g' });
+  if (totals.carbs > limits.carbs) exceededLimits.push({ name: 'Carbs', overBy: totals.carbs - limits.carbs, unit: 'g' });
+  if (totals.fats > limits.fats) exceededLimits.push({ name: 'Fats', overBy: totals.fats - limits.fats, unit: 'g' });
+
   // Validation status flag
   let status;
-  if (totals.calories > limits.calories) {
+  if (exceededLimits.length > 0) {
     status = 'exceeded';
   } else if (totals.calories >= limits.calories * 0.8) {
     status = 'warning';
@@ -124,6 +130,7 @@ function getBudgetStatus() {
     activeGoal,
     goalLabel: limits.label,
     status,
+    exceededLimits,
   };
 }
 
