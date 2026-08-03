@@ -14,7 +14,10 @@ function FoodLoggingPanel({ onLogFood }) {
   const fileInputRef = useRef(null);
 
   // Known foods in our backend for simulation
-  const mockFoods = ['Chicken Breast', 'Rice', 'Banana', 'Egg', 'Bread', 'Milk', 'Apple', 'Pasta', 'Salmon'];
+  const mockFoods = [
+    'Chicken Breast', 'Rice', 'Banana', 'Egg', 'Bread', 'Milk', 'Apple', 'Pasta', 'Salmon',
+    'Tofu', 'Lentils', 'Paneer', 'Spinach', 'Broccoli', 'Avocado', 'Almonds'
+  ];
 
   const handleImageUpload = () => {
     fileInputRef.current?.click();
